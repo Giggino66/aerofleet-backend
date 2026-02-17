@@ -1,28 +1,31 @@
-"""Authentication schemas"""
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
 
-class UserBase(BaseModel):
+class UserCreate(BaseModel):
     username: str
-    email: EmailStr
-    full_name: Optional[str] = None
-
-
-class UserCreate(UserBase):
+    email: str  # Changed from EmailStr to str
     password: str
+    full_name: Optional[str] = None
     role: str = "viewer"
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: UUID
+    username: str
+    email: str
+    full_name: Optional[str] = None
     role: str
     is_active: bool
     created_at: datetime
-    
     model_config = ConfigDict(from_attributes=True)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 
 class Token(BaseModel):
@@ -30,8 +33,3 @@ class Token(BaseModel):
     token_type: str = "bearer"
     expires_at: datetime
     user: UserResponse
-
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str

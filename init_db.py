@@ -1,68 +1,36 @@
-"""Initialize database with default data"""
-import sys
-from pathlib import Path
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from app.core.database import SessionLocal, Base, engine
-from app.core.security import get_password_hash
+from app.core.database import Base, engine, SessionLocal
+from app.core.security import hash_password
 from app.models.user import User
-from app.models.aircraft import Aircraft
+from app.models.aircraft import Aircraft  # ensure table is registered
 
 
 def init_db():
-    """Initialize database"""
-    
-    print("=" * 60)
-    print("AeroFleet Manager - Database Initialization")
-    print("=" * 60)
-    
+    print("Creating tables...")
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
     try:
-        print("\nCreating database tables...")
-        Base.metadata.create_all(bind=engine)
-        print("✓ Tables created")
-        
-        db = SessionLocal()
-        
-        try:
-            # Create admin user
-            admin = db.query(User).filter(User.username == "admin").first()
-            
-            if not admin:
-                print("\nCreating admin user...")
-                admin = User(
-                    username="admin",
-                    email="admin@aerofleet.local",
-                    password_hash=get_password_hash("admin123"),
-                    full_name="Administrator",
-                    role="admin",
-                    is_active=True
-                )
-                db.add(admin)
-                db.commit()
-                print("✓ Admin user created")
-                print("\n" + "=" * 60)
-                print("DEFAULT CREDENTIALS:")
-                print("Username: admin")
-                print("Password: admin123")
-                print("⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!")
-                print("=" * 60)
-            else:
-                print("✓ Admin user already exists")
-            
-            print("\n✓ Database initialization completed!\n")
-            
-        except Exception as e:
-            print(f"✗ Error during initialization: {e}")
-            db.rollback()
-            raise
-        finally:
-            db.close()
-            
-    except Exception as e:
-        print(f"✗ Failed to initialize database: {e}")
-        raise
+        if not db.query(User).filter(User.username == "admin").first():
+            db.add(User(
+                username="admin",
+                email="admin@aerofleet.local",
+                password_hash=hash_password("admin123"),
+                full_name="Administrator",
+                role="admin",
+                is_active=True,
+            ))
+            db.commit()
+            print("✓ Admin user created  (username: admin / password: admin123)")
+            print("⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!")
+        else:
+            print("✓ Admin user already exists")
+    finally:
+        db.close()
+
+    print("✓ Database ready")
 
 
 if __name__ == "__main__":
